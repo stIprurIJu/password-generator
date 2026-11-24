@@ -46,10 +46,23 @@
 
   /* 結果 */
   #password {
+    position: relative; cursor: pointer;
     font-family: var(--mono);
     font-size: 1.35rem; font-weight: 600; word-break: break-all; min-height: 2.2em;
-    padding: 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px;
+    padding: 12px 12px calc(12px + 0.7rem); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px;
     user-select: all; -webkit-user-select: all;
+    transition: border-color .15s, background .15s;
+  }
+  /* タップ（クリック）でコピーできることを示す */
+  #password:not(.error)::after {
+    content: "タップでコピー"; position: absolute; right: 8px; bottom: 3px;
+    font-family: var(--sans); font-size: 0.65rem; font-weight: 400; color: var(--muted);
+  }
+  #password:hover:not(.error) { border-color: var(--accent); }
+  #password:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #password.copied { border-color: var(--strong); background: color-mix(in srgb, var(--strong) 10%, transparent); }
+  @media (hover: none) {
+    #password { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   }
   #password .d { color: var(--digit); }
   #password .s { color: var(--symbol); }
@@ -110,6 +123,16 @@
   }
   #symbolUsed { margin-top: 8px; font-size: 0.85rem; color: var(--muted); word-break: break-all; }
   #symbolUsed code { font-family: var(--mono); font-size: 1rem; font-weight: 600; color: var(--symbol); }
+  #symbolUsed.warn { color: var(--weak); font-weight: 600; }
+  .sym-count { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+  .sym-count input {
+    width: 4.2em; font: inherit; font-size: 0.95rem; text-align: center; color: var(--text);
+    padding: 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--card);
+  }
+  .sym-count small { font-size: 0.75rem; }
+
+  /* 文字サイズ自動調整の計測中は、高さいっぱいに広げる指定を外して中身の高さを測る */
+  html.measuring main { min-height: 0 !important; }
 
   #toast {
     position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
@@ -150,7 +173,9 @@
     .card { padding: 10px 12px; margin-bottom: 8px; border-radius: 12px; }
     .card h2 { margin-bottom: 6px; font-size: 0.85rem; }
     .sp-only { display: inline; }
-    #password { font-size: 1.2rem; min-height: 0; padding: 7px 10px; margin-bottom: 8px; }
+    #password { font-size: 1.2rem; min-height: 0; padding: 7px 10px calc(7px + 0.6rem); margin-bottom: 8px; }
+    .sym-count { margin-top: 5px; font-size: 0.8rem; }
+    .sym-count small { display: none; }
     button { min-height: 2.65rem; padding: 6px 12px; }
     .strength { margin-top: 6px; font-size: 0.85rem; }
     .len-row { margin-top: 6px; padding-top: 6px; gap: 8px; }
@@ -199,7 +224,7 @@
     .row { padding: 4px 0; }
     .row small { display: inline; margin-left: 8px; }
     /* 64文字でも高さが変わらないよう2行分を確保 */
-    #password { font-size: 1.5rem; line-height: 1.45; min-height: calc(2.9em + 18px); padding: 8px 10px; margin-bottom: 8px; }
+    #password { font-size: 1.5rem; line-height: 1.45; min-height: calc(2.9em + 18px); padding: 8px 10px calc(8px + 0.6rem); margin-bottom: 8px; }
     button { min-height: 2.4rem; padding: 6px 12px; }
     .len-row button { width: 2.4rem; }
     #lengthValue { padding: 5px 4px; }
@@ -219,7 +244,7 @@
 
   <div class="col">
   <section class="card" aria-live="polite">
-    <div id="password"></div>
+    <div id="password" role="button" tabindex="0" title="タップ（クリック）でコピー"></div>
     <div class="actions">
       <button id="copyBtn" class="primary" type="button">コピー</button>
       <button id="regenBtn" type="button">再生成</button>
@@ -244,6 +269,13 @@
     <label class="field" for="symbolInput">使える記号を貼り付け（記号以外の文字は無視します）</label>
     <input id="symbolInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="例: -_.!">
     <div id="symbolUsed"></div>
+    <div class="sym-count">
+      <span>記号の数</span>
+      <input id="symMin" type="number" inputmode="numeric" min="0" max="64" placeholder="下限" aria-label="記号の数の下限">
+      <span>〜</span>
+      <input id="symMax" type="number" inputmode="numeric" min="0" max="64" placeholder="上限" aria-label="記号の数の上限">
+      <span>文字</span><small>（空欄は指定なし）</small>
+    </div>
   </section>
   </div>
 
@@ -261,6 +293,7 @@
     <div class="row"><div>各種類を1文字以上含める <small>選んだ種類が必ず入る</small></div><label class="switch"><input type="checkbox" id="requireEach"><span></span></label></div>
     <div class="row"><div>紛らわしい文字を除外 <small class="mono">0 O o 1 l I |</small></div><label class="switch"><input type="checkbox" id="noAmbiguous"><span></span></label></div>
     <div class="row"><div>先頭を英字にする <small>記号・数字で始めない</small></div><label class="switch"><input type="checkbox" id="startLetter"><span></span></label></div>
+    <div class="row"><div>同じ文字を連続させない <small class="mono">aa 11 ##</small></div><label class="switch"><input type="checkbox" id="noRepeat"><span></span></label></div>
   </section>
   </div>
 </main>
@@ -281,7 +314,9 @@
   const DEFAULTS = {
     length: 16, lower: true, upper: true, digit: true, symbol: true,
     symbols: '!#$%&*+-=?@_', requireEach: true, noAmbiguous: false, startLetter: false,
+    noRepeat: false, symMin: '', symMax: '',   // symMin/symMax: 空文字 = 指定なし
   };
+  const SWITCHES = ['lower', 'upper', 'digit', 'symbol', 'requireEach', 'noAmbiguous', 'startLetter', 'noRepeat'];
 
   const $ = (id) => document.getElementById(id);
   const state = loadSettings();
@@ -295,6 +330,8 @@
       }
       s.length = clampLen(s.length);
       s.symbols = normalizeSymbols(s.symbols);
+      s.symMin = cleanCount(s.symMin);
+      s.symMax = cleanCount(s.symMax);
       return s;
     } catch { return { ...DEFAULTS }; }
   }
@@ -305,6 +342,13 @@
     n = Math.round(Number(n));
     if (!Number.isFinite(n)) return DEFAULTS.length;
     return Math.min(MAX_LEN, Math.max(MIN_LEN, n));
+  }
+  // 記号の数の入力を 0〜64 の整数（文字列）か空文字にそろえる
+  function cleanCount(v) {
+    const t = String(v).normalize('NFKC').trim();
+    if (t === '') return '';
+    const n = Math.round(Number(t));
+    return Number.isFinite(n) ? String(Math.min(MAX_LEN, Math.max(0, n))) : '';
   }
   // 全角記号は半角に直し、記号表にある文字だけを表の順で重複なく残す
   function normalizeSymbols(str) {
@@ -319,6 +363,18 @@
     let x;
     do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
     return x % n;
+  }
+  // 偏りのない乱数 [0, 1)（53ビット）
+  const buf2 = new Uint32Array(2);
+  function randFloat() {
+    crypto.getRandomValues(buf2);
+    return ((buf2[0] >>> 5) * 67108864 + (buf2[1] >>> 6)) / 9007199254740992;
+  }
+  // log(nCk)
+  function logChoose(n, k) {
+    let s = 0;
+    for (let i = 1; i <= k; i++) s += Math.log(n - k + i) - Math.log(i);
+    return s;
   }
 
   function activeClasses() {
@@ -338,24 +394,66 @@
         ? '使う記号を1つ以上選んでください。'
         : '使う文字の種類を1つ以上選んでください。' };
     }
-    const pool = classes.map((c) => c.chars).join('');
-    const letters = classes.filter((c) => c.key === 'lower' || c.key === 'upper').map((c) => c.chars).join('');
     const len = state.length;
+    const symPool = (classes.find((c) => c.key === 'symbol') || { chars: '' }).chars;
+    const others = classes.filter((c) => c.key !== 'symbol');
+    const otherPool = others.map((c) => c.chars).join('');
+    const pool = otherPool + symPool;
+    const letters = classes.filter((c) => c.key === 'lower' || c.key === 'upper').map((c) => c.chars).join('');
 
     if (state.startLetter && !letters) return { error: '「先頭を英字にする」には小文字か大文字を選んでください。' };
     if (state.requireEach && classes.length > len) return { error: '長さが選んだ文字の種類より短いため作れません。' };
 
-    // 条件を満たすまで作り直す（棄却法）→ 条件を満たす全パターンから均等に選ばれる
+    // 記号の数の範囲 [lo, hi] を決める
+    const userMin = state.symMin === '' ? null : Number(state.symMin);
+    const userMax = state.symMax === '' ? null : Number(state.symMax);
+    let lo = userMin ?? 0, hi = Math.min(userMax ?? len, len);
+    if (!symPool) {
+      if (lo > 0) return { error: '記号の数の下限を指定するには、記号をオンにして使う記号を入力してください。' };
+      lo = hi = 0;
+    } else {
+      if (state.requireEach) lo = Math.max(lo, 1);
+      if (!otherPool) lo = Math.max(lo, len);                         // 記号だけで作る場合
+      if (otherPool && state.requireEach) hi = Math.min(hi, len - others.length);
+      if (state.startLetter) hi = Math.min(hi, len - 1);
+      if (userMin !== null && userMax !== null && userMin > userMax) return { error: '記号の数の下限が上限より大きくなっています。' };
+      if (lo > hi) return { error: '記号の数の指定が、長さや他の条件と合わないため作れません。' };
+    }
+
+    // 記号の数 k ごとの組み合わせ数（対数）: C(len,k) × 記号種類^k × その他種類^(len-k)
+    const ks = [], logW = [];
+    for (let k = lo; k <= hi; k++) {
+      const lw = logChoose(len, k)
+        + (k > 0 ? k * Math.log(symPool.length) : 0)
+        + (len - k > 0 ? (len - k) * Math.log(otherPool.length) : 0);
+      ks.push(k); logW.push(lw);
+    }
+    const maxLog = Math.max(...logW);
+    const weights = logW.map((v) => Math.exp(v - maxLog));
+    const total = weights.reduce((a, b) => a + b, 0);
+    function pickK() {
+      let r = randFloat() * total;
+      for (let i = 0; i < ks.length; i++) { r -= weights[i]; if (r < 0) return ks[i]; }
+      return ks[ks.length - 1];
+    }
+
+    // 記号の数を条件の範囲から（組み合わせ数に比例して）選び、記号の位置と各文字を均等に選ぶ。
+    // 残りの条件は満たすまで作り直す（棄却法）→ 条件を満たす全パターンから均等に選ばれる
+    const idx = [...Array(len).keys()];
     for (let attempt = 0; attempt < 200000; attempt++) {
-      const chars = new Array(len);
-      for (let i = 0; i < len; i++) {
-        const src = (i === 0 && state.startLetter) ? letters : pool;
-        chars[i] = src[randInt(src.length)];
-      }
+      const k = pickK();
+      for (let i = 0; i < k; i++) { const j = i + randInt(len - i); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+      const isSym = new Array(len).fill(false);
+      for (let i = 0; i < k; i++) isSym[idx[i]] = true;
+      const chars = isSym.map((s) => s ? symPool[randInt(symPool.length)] : otherPool[randInt(otherPool.length)]);
+
+      if (state.startLetter && !letters.includes(chars[0])) continue;
       if (state.requireEach && !classes.every((c) => chars.some((ch) => c.chars.includes(ch)))) continue;
-      const bits = state.startLetter
-        ? Math.log2(letters.length) + (len - 1) * Math.log2(pool.length)
-        : len * Math.log2(pool.length);
+      if (state.noRepeat && chars.some((ch, i) => i > 0 && ch === chars[i - 1])) continue;
+
+      // 強さ: 条件を満たす組み合わせのおおよその数（ビット）
+      let bits = (maxLog + Math.log(total)) / Math.LN2;
+      if (state.startLetter) bits -= Math.log2(pool.length / letters.length);
       return { password: chars.join(''), bits };
     }
     return { error: '条件を満たすパスワードを作れませんでした。条件を緩めてください。' };
@@ -372,6 +470,7 @@
       out.textContent = result.error;
       $('copyBtn').disabled = true;
       setStrength(0);
+      fitToScreen();
       return;
     }
     current = result.password;
@@ -385,7 +484,45 @@
     }
     $('copyBtn').disabled = false;
     setStrength(result.bits);
+    fitToScreen();
   }
+
+  // ---- 1画面に収まるよう文字サイズを自動調整 ----
+  // 中身の実際の高さを測り、画面の高さに合う文字サイズを求める（余った分はCSSでカードを伸ばして埋める）
+  const mqPC = matchMedia('(min-width: 900px)');
+  function fitToScreen() {
+    const root = document.documentElement;
+    const main = document.querySelector('main');
+    const pc = mqPC.matches;
+    const bodyStyle = getComputedStyle(document.body);
+    const avail = window.innerHeight - parseFloat(bodyStyle.paddingTop) - parseFloat(bodyStyle.paddingBottom);
+    const vw = root.clientWidth;
+    const minF = pc ? 14 : 11;
+    const maxF = Math.max(minF, Math.min(pc ? 28 : 18, pc ? (vw - 40) / 65 : vw / 26));
+
+    root.classList.add('measuring');
+    let f = parseFloat(getComputedStyle(root).fontSize) || 16;
+    for (let i = 0; i < 6; i++) {
+      root.style.fontSize = f + 'px';
+      const next = Math.max(minF, Math.min(maxF, f * avail / main.offsetHeight));
+      if (Math.abs(next - f) < 0.05) break;
+      f = next;
+    }
+    // 端数で少しはみ出す場合は少しずつ小さくする
+    for (let i = 0; i < 20 && main.offsetHeight > avail && f > minF; i++) {
+      f = Math.max(minF, f - 0.25);
+      root.style.fontSize = f + 'px';
+    }
+    root.classList.remove('measuring');
+  }
+  let fitQueued = false;
+  function queueFit() {
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(() => { fitQueued = false; fitToScreen(); });
+  }
+  window.addEventListener('resize', queueFit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueFit);
 
   function setStrength(bits) {
     const bar = $('strengthBar');
@@ -407,8 +544,9 @@
     if (document.activeElement !== $('lengthValue')) $('lengthValue').value = state.length;
     $('lenMinus').disabled = state.length <= MIN_LEN;
     $('lenPlus').disabled = state.length >= MAX_LEN;
-    for (const k of ['lower', 'upper', 'digit', 'symbol', 'requireEach', 'noAmbiguous', 'startLetter']) {
-      $(k).checked = state[k];
+    for (const k of SWITCHES) $(k).checked = state[k];
+    for (const k of ['symMin', 'symMax']) {
+      if (document.activeElement !== $(k)) $(k).value = state[k];
     }
     if (syncInput) $('symbolInput').value = state.symbols;
     renderSymbolUsed();
@@ -420,7 +558,18 @@
     const el = $('symbolUsed');
     const used = [...state.symbols].filter((c) => !(state.noAmbiguous && AMBIGUOUS.has(c))).join('');
     el.textContent = '';
-    if (!used) { el.textContent = '使用する記号：なし'; return; }
+    el.classList.remove('warn');
+    if (!used) {
+      if (state.symbol) {
+        el.classList.add('warn');
+        el.textContent = state.symbols
+          ? '使える記号がすべて除外されているため、記号なしで作成しています。'
+          : '記号が指定されていないため、記号なしで作成しています。';
+      } else {
+        el.textContent = '使用する記号：なし';
+      }
+      return;
+    }
     el.append('使用する記号：');
     const code = document.createElement('code');
     code.textContent = used;
@@ -439,8 +588,12 @@
   $('lenMinus').addEventListener('click', () => { state.length = clampLen(state.length - 1); update(); });
   $('lenPlus').addEventListener('click', () => { state.length = clampLen(state.length + 1); update(); });
 
-  for (const k of ['lower', 'upper', 'digit', 'symbol', 'requireEach', 'noAmbiguous', 'startLetter']) {
+  for (const k of SWITCHES) {
     $(k).addEventListener('change', (e) => { state[k] = e.target.checked; update(); });
+  }
+  for (const k of ['symMin', 'symMax']) {
+    $(k).addEventListener('input', (e) => { state[k] = cleanCount(e.target.value); update(); });
+    $(k).addEventListener('blur', (e) => { e.target.value = state[k]; });
   }
 
   $('symbolInput').addEventListener('input', (e) => { state.symbols = normalizeSymbols(e.target.value); update(); });
@@ -448,6 +601,11 @@
 
   $('regenBtn').addEventListener('click', render);
   $('copyBtn').addEventListener('click', copy);
+  // パスワード部分のタップ（クリック）・Enter・Space でもコピー
+  $('password').addEventListener('click', copy);
+  $('password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copy(); }
+  });
 
   async function copy() {
     if (!current) return;
@@ -467,6 +625,11 @@
       ta.remove();
     }
     toast(ok ? 'コピーしました' : 'コピーできませんでした');
+    if (ok) {
+      const pw = $('password');
+      pw.classList.add('copied');
+      setTimeout(() => pw.classList.remove('copied'), 600);
+    }
   }
 
   let toastTimer;
