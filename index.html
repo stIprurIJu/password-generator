@@ -124,8 +124,26 @@
   /* スマホ: 縦を詰めてできるだけ1画面に収める */
   .sp-only { display: none; font-weight: 400; font-size: 0.75rem; }
   @media (max-width: 899px) {
-    html { font-size: 15px; }
-    main { padding: 6px 10px; }
+    /* 画面の高さ・幅に合わせて文字サイズを自動調整（13〜18px）
+       高さ: 中身がおよそ41rem + 40px / 幅: 1行がおよそ26rem */
+    html { font-size: clamp(13px, min(calc((100vh - 40px) / 41), calc(100vw / 26)), 18px); }
+    @supports (height: 100dvh) {
+      html { font-size: clamp(13px, min(calc((100dvh - 40px) / 41), calc(100vw / 26)), 18px); }
+    }
+    main {
+      padding: 6px 10px;
+      display: flex; flex-direction: column;
+      min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+    /* 余った高さはカードを伸ばして埋める */
+    .col { display: flex; flex-direction: column; flex: 1 1 auto; }
+    .col > .card { flex: 1 1 auto; display: flex; flex-direction: column; }
+    .col > #symbolArea, .col > #charCard { flex: 0 0 auto; }
+    .col:last-child > .card:last-child { margin-bottom: 0; }
+    #optCard .row { flex: 1; }
+    #password { flex: 1; display: flex; flex-wrap: wrap; align-content: center; }
+    #password.error { align-items: center; }
     header { margin: 0 2px 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
     header h1 { font-size: 1.1rem; }
     .note { font-size: 0.68rem; margin: 0; }
@@ -133,10 +151,10 @@
     .card h2 { margin-bottom: 6px; font-size: 0.85rem; }
     .sp-only { display: inline; }
     #password { font-size: 1.2rem; min-height: 0; padding: 7px 10px; margin-bottom: 8px; }
-    button { min-height: 40px; padding: 6px 12px; }
+    button { min-height: 2.65rem; padding: 6px 12px; }
     .strength { margin-top: 6px; font-size: 0.85rem; }
     .len-row { margin-top: 6px; padding-top: 6px; gap: 8px; }
-    .len-row button { width: 40px; }
+    .len-row button { width: 2.65rem; }
     #lengthValue { padding: 6px 4px; }
     #symbolArea label.field { display: none; }
     #symbolInput { margin-top: 0; padding: 7px 10px; }
