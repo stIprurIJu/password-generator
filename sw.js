@@ -1,6 +1,6 @@
 // オフラインでも動くように、サイトのファイルを端末にキャッシュする。
 // ファイルを更新したら VERSION を上げること。
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = `pwgen-${VERSION}`;
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
