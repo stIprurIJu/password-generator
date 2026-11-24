@@ -121,6 +121,37 @@
   header h1 { margin: 0; }
   .note { color: var(--muted); font-size: 0.8rem; margin: 4px 0 0; }
 
+  /* スマホ: 縦を詰めてできるだけ1画面に収める */
+  .sp-only { display: none; font-weight: 400; font-size: 0.75rem; }
+  @media (max-width: 899px) {
+    html { font-size: 15px; }
+    main { padding: 6px 10px; }
+    header { margin: 0 2px 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+    header h1 { font-size: 1.1rem; }
+    .note { font-size: 0.68rem; margin: 0; }
+    .card { padding: 10px 12px; margin-bottom: 8px; border-radius: 12px; }
+    .card h2 { margin-bottom: 6px; font-size: 0.85rem; }
+    .sp-only { display: inline; }
+    #password { font-size: 1.2rem; min-height: 0; padding: 7px 10px; margin-bottom: 8px; }
+    button { min-height: 40px; padding: 6px 12px; }
+    .strength { margin-top: 6px; font-size: 0.85rem; }
+    .len-row { margin-top: 6px; padding-top: 6px; gap: 8px; }
+    .len-row button { width: 40px; }
+    #lengthValue { padding: 6px 4px; }
+    #symbolArea label.field { display: none; }
+    #symbolInput { margin-top: 0; padding: 7px 10px; }
+    #symbolUsed { margin-top: 5px; font-size: 0.8rem; }
+    /* 使う文字: 4つを横一列に */
+    #charCard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 6px; }
+    #charCard h2 { grid-column: 1 / -1; }
+    #charCard .row { flex-direction: column; justify-content: flex-start; gap: 4px; padding: 0; border-top: none; }
+    #charCard .row small { display: none; }
+    /* オプション: 補足文は省き、紛らわしい文字の例だけ横に表示 */
+    .row { padding: 6px 0; }
+    #optCard .row small { display: none; }
+    #optCard .row small.mono { display: inline; margin-left: 6px; font-size: 0.8rem; }
+  }
+
   /* PC: 2列にして1画面に収める */
   @media (min-width: 900px) {
     /* 画面の高さ・幅に合わせて全体の文字サイズを自動調整（14〜28px）
@@ -191,7 +222,7 @@
   </section>
 
   <section class="card" id="symbolArea">
-    <h2>使う記号</h2>
+    <h2>使う記号<span class="sp-only">（貼り付け・記号以外は無視）</span></h2>
     <label class="field" for="symbolInput">使える記号を貼り付け（記号以外の文字は無視します）</label>
     <input id="symbolInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="例: -_.!">
     <div id="symbolUsed"></div>
@@ -199,7 +230,7 @@
   </div>
 
   <div class="col">
-  <section class="card">
+  <section class="card" id="charCard">
     <h2>使う文字</h2>
     <div class="row"><div>小文字 <small>a〜z</small></div><label class="switch"><input type="checkbox" id="lower"><span></span></label></div>
     <div class="row"><div>大文字 <small>A〜Z</small></div><label class="switch"><input type="checkbox" id="upper"><span></span></label></div>
@@ -207,7 +238,7 @@
     <div class="row"><div>記号 <small>「使う記号」で指定</small></div><label class="switch"><input type="checkbox" id="symbol"><span></span></label></div>
   </section>
 
-  <section class="card">
+  <section class="card" id="optCard">
     <h2>オプション</h2>
     <div class="row"><div>各種類を1文字以上含める <small>選んだ種類が必ず入る</small></div><label class="switch"><input type="checkbox" id="requireEach"><span></span></label></div>
     <div class="row"><div>紛らわしい文字を除外 <small class="mono">0 O o 1 l I |</small></div><label class="switch"><input type="checkbox" id="noAmbiguous"><span></span></label></div>
