@@ -1,8 +1,8 @@
 // オフラインでも動くように、サイトのファイルを端末にキャッシュする。
 // ファイルを更新したら VERSION を上げること。
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = `pwgen-${VERSION}`;
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './fonts/udp-400.woff2', './fonts/udp-700.woff2', './fonts/ud-400.woff2', './fonts/ud-700.woff2'];
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './fonts/noto.woff2', './fonts/cascadia.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
