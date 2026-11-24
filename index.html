@@ -20,6 +20,11 @@
   })();
 </script>
 <style>
+  /* スマホ用: 見分けやすいUDフォント（BIZ UDゴシック, OFL）。ページで使う文字だけ同梱 */
+  @font-face { font-family: "PW UDP"; src: url(fonts/udp-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "PW UDP"; src: url(fonts/udp-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+  @font-face { font-family: "PW UD"; src: url(fonts/ud-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "PW UD"; src: url(fonts/ud-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
   :root {
     /* 読みやすいフォント（PC: Segoe UI + メイリオ / iPhone: ヒラギノ / Android: Roboto + Noto） */
     --sans: "Segoe UI", Meiryo, "メイリオ", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Roboto, "Noto Sans JP", sans-serif;
@@ -163,6 +168,10 @@
   /* スマホ: 縦を詰めてできるだけ1画面に収める */
   .sp-only { display: none; font-weight: 400; font-size: 0.75rem; }
   @media (max-width: 899px) {
+    :root {
+      --sans: "PW UDP", -apple-system, "Hiragino Sans", Roboto, "Noto Sans JP", sans-serif;
+      --mono: "PW UD", "SF Mono", Menlo, "Roboto Mono", monospace;
+    }
     /* 画面の高さ・幅に合わせて文字サイズを自動調整（13〜18px）
        高さ: 中身がおよそ41rem + 40px / 幅: 1行がおよそ26rem */
     html { font-size: clamp(13px, min(calc((100vh - 40px) / 41), calc(100vw / 26)), 18px); }
