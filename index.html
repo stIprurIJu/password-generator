@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>パスワード生成</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    /* 読みやすいフォント（PC: Segoe UI + メイリオ / iPhone: ヒラギノ / Android: Roboto + Noto） */
+    --sans: "Segoe UI", Meiryo, "メイリオ", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Roboto, "Noto Sans JP", sans-serif;
+    /* パスワード用: 0/O・1/l/I が見分けやすい等幅フォント */
+    --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, "Roboto Mono", ui-monospace, monospace;
+    --bg: #f4f5f7; --card: #ffffff; --text: #1f2328; --muted: #6b7280;
+    --border: #d9dde3; --accent: #2563eb; --accent-text: #ffffff;
+    --digit: #2563eb; --symbol: #d6336c; --chip-off: #eef0f3;
+    --weak: #dc2626; --mid: #d97706; --strong: #16a34a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111318; --card: #1b1e24; --text: #e8eaed; --muted: #9aa0a6;
+      --border: #333842; --accent: #4f8cff; --accent-text: #ffffff;
+      --digit: #6ea8ff; --symbol: #ff7aa8; --chip-off: #262a31;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.25rem; margin: 8px 0 16px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 0.95rem; margin: 0 0 12px; color: var(--muted); font-weight: 600; }
+
+  /* 結果 */
+  #password {
+    font-family: var(--mono);
+    font-size: 1.35rem; font-weight: 600; word-break: break-all; min-height: 2.2em;
+    padding: 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px;
+    user-select: all; -webkit-user-select: all;
+  }
+  #password .d { color: var(--digit); }
+  #password .s { color: var(--symbol); }
+  #password.error { font-family: inherit; font-size: 0.95rem; font-weight: 500; color: var(--weak); user-select: none; }
+  .actions { display: flex; gap: 10px; }
+  button {
+    font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); padding: 10px 14px; min-height: 44px;
+    touch-action: manipulation;
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  .actions button { flex: 1; font-size: 1rem; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .strength { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 0.9rem; color: var(--muted); }
+  .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--chip-off); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; transition: width .2s, background .2s; }
+  .badge { font-weight: 700; }
+
+  /* 長さ */
+  .len-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .len-label { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+  .len-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); height: 32px; }
+  .len-row button { width: 44px; flex-shrink: 0; padding: 0; font-size: 1.3rem; line-height: 1; }
+  .len-row > * { flex-shrink: 0; }
+  .len-row > input[type=range] { flex-shrink: 1; }
+  #lengthValue {
+    width: 3.6em; text-align: center; font: inherit; font-weight: 700; font-size: 1.05rem;
+    padding: 8px 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text);
+  }
+
+  /* スイッチ行 */
+  .row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 0; border-top: 1px solid var(--border);
+  }
+  .row:first-of-type { border-top: none; padding-top: 0; }
+  .row small { display: block; color: var(--muted); font-size: 0.8rem; }
+  .row small.mono { font-family: var(--mono); font-size: 0.9rem; }
+  .switch { position: relative; width: 3.125rem; height: 1.875rem; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; cursor: pointer; z-index: 1; }
+  .switch span {
+    position: absolute; inset: 0; border-radius: 0.9375rem; background: var(--border); transition: background .15s;
+  }
+  .switch span::after {
+    content: ""; position: absolute; top: 0.1875rem; left: 0.1875rem; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+    background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+  .switch input:checked + span { background: var(--accent); }
+  .switch input:checked + span::after { transform: translateX(1.25rem); }
+  .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* 記号 */
+  #symbolArea.disabled { opacity: 0.45; pointer-events: none; }
+  label.field { display: block; font-size: 0.85rem; color: var(--muted); }
+  #symbolInput {
+    width: 100%; margin-top: 4px; font-family: var(--mono); font-size: 1.05rem;
+    padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text);
+  }
+  #symbolUsed { margin-top: 8px; font-size: 0.85rem; color: var(--muted); word-break: break-all; }
+  #symbolUsed code { font-family: var(--mono); font-size: 1rem; font-weight: 600; color: var(--symbol); }
+
+  #toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    background: #1f2328; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 0.95rem;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  header { margin: 8px 0 16px; }
+  header h1 { margin: 0; }
+  .note { color: var(--muted); font-size: 0.8rem; margin: 4px 0 0; }
+
+  /* PC: 2列にして1画面に収める */
+  @media (min-width: 900px) {
+    /* 画面の高さ・幅に合わせて全体の文字サイズを自動調整（14〜28px）
+       高さ: 中身がおよそ27rem + 100px なので、ちょうど収まる大きさを計算
+       幅: 全体の幅 65rem が画面幅に収まる大きさまで */
+    html { font-size: clamp(14px, min(calc((100vh - 100px) / 27), calc((100vw - 40px) / 65)), 28px); }
+    main {
+      max-width: 65rem; padding: 10px 20px;
+      min-height: 100vh; min-height: 100dvh;
+      display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr;
+      gap: 0 16px; align-items: stretch;
+    }
+    /* カードを縦に伸ばして画面の高さいっぱいに広げる（左右の下端もそろう） */
+    .col { display: flex; flex-direction: column; }
+    .col > .card { flex: 1 1 auto; display: flex; flex-direction: column; }
+    .col > .card:last-child { margin-bottom: 0; }
+    .col > .card > .row { flex: 1; }
+    #password { flex: 1; display: flex; flex-wrap: wrap; align-content: center; }
+    #password.error { align-items: center; }
+    /* 左の列は結果カードだけを伸ばす（使う記号カードは中身の高さのまま） */
+    .col > #symbolArea { flex: 0 0 auto; }
+    header { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 16px; margin: 0 0 8px; }
+    header h1 { font-size: 1.1rem; }
+    .note { margin: 0; }
+    .card { padding: 10px 14px; margin-bottom: 10px; }
+    .card h2 { margin-bottom: 4px; }
+    .row { padding: 4px 0; }
+    .row small { display: inline; margin-left: 8px; }
+    /* 64文字でも高さが変わらないよう2行分を確保 */
+    #password { font-size: 1.5rem; line-height: 1.45; min-height: calc(2.9em + 18px); padding: 8px 10px; margin-bottom: 8px; }
+    button { min-height: 2.4rem; padding: 6px 12px; }
+    .len-row button { width: 2.4rem; }
+    #lengthValue { padding: 5px 4px; }
+    .strength { margin-top: 8px; }
+    .len-row { margin-top: 8px; padding-top: 8px; }
+    #symbolInput { padding: 6px 10px; }
+    #symbolUsed { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>パスワード生成</h1>
+    <p class="note">パスワードはお使いの端末の中だけで作られ、送信・保存されません。</p>
+  </header>
+
+  <div class="col">
+  <section class="card" aria-live="polite">
+    <div id="password"></div>
+    <div class="actions">
+      <button id="copyBtn" class="primary" type="button">コピー</button>
+      <button id="regenBtn" type="button">再生成</button>
+    </div>
+    <div class="strength">
+      <span>強さ</span>
+      <div class="bar"><i id="strengthBar"></i></div>
+      <span class="badge" id="strengthLabel"></span>
+      <span id="bitsLabel"></span>
+    </div>
+    <div class="len-row">
+      <span class="len-label">長さ</span>
+      <button id="lenMinus" type="button" aria-label="1文字減らす">−</button>
+      <input id="lengthRange" type="range" min="4" max="64" step="1" aria-label="長さ">
+      <button id="lenPlus" type="button" aria-label="1文字増やす">＋</button>
+      <input id="lengthValue" type="number" inputmode="numeric" min="4" max="64" aria-label="文字数">
+    </div>
+  </section>
+
+  <section class="card" id="symbolArea">
+    <h2>使う記号</h2>
+    <label class="field" for="symbolInput">使える記号を貼り付け（記号以外の文字は無視します）</label>
+    <input id="symbolInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="例: -_.!">
+    <div id="symbolUsed"></div>
+  </section>
+  </div>
+
+  <div class="col">
+  <section class="card">
+    <h2>使う文字</h2>
+    <div class="row"><div>小文字 <small>a〜z</small></div><label class="switch"><input type="checkbox" id="lower"><span></span></label></div>
+    <div class="row"><div>大文字 <small>A〜Z</small></div><label class="switch"><input type="checkbox" id="upper"><span></span></label></div>
+    <div class="row"><div>数字 <small>0〜9</small></div><label class="switch"><input type="checkbox" id="digit"><span></span></label></div>
+    <div class="row"><div>記号 <small>「使う記号」で指定</small></div><label class="switch"><input type="checkbox" id="symbol"><span></span></label></div>
+  </section>
+
+  <section class="card">
+    <h2>オプション</h2>
+    <div class="row"><div>各種類を1文字以上含める <small>選んだ種類が必ず入る</small></div><label class="switch"><input type="checkbox" id="requireEach"><span></span></label></div>
+    <div class="row"><div>紛らわしい文字を除外 <small class="mono">0 O o 1 l I |</small></div><label class="switch"><input type="checkbox" id="noAmbiguous"><span></span></label></div>
+    <div class="row"><div>先頭を英字にする <small>記号・数字で始めない</small></div><label class="switch"><input type="checkbox" id="startLetter"><span></span></label></div>
+  </section>
+  </div>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+  const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const DIGIT = '0123456789';
+  const SYMBOLS = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
+  const AMBIGUOUS = new Set('0Oo1lI|');
+  const MIN_LEN = 4, MAX_LEN = 64;
+  const STORAGE_KEY = 'pwgen-settings-v1';
+
+  const DEFAULTS = {
+    length: 16, lower: true, upper: true, digit: true, symbol: true,
+    symbols: '!#$%&*+-=?@_', requireEach: true, noAmbiguous: false, startLetter: false,
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const state = loadSettings();
+
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const s = { ...DEFAULTS };
+      for (const k of Object.keys(DEFAULTS)) {
+        if (typeof saved[k] === typeof DEFAULTS[k]) s[k] = saved[k];
+      }
+      s.length = clampLen(s.length);
+      s.symbols = normalizeSymbols(s.symbols);
+      return s;
+    } catch { return { ...DEFAULTS }; }
+  }
+  function saveSettings() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* 保存できない環境では無視 */ }
+  }
+  function clampLen(n) {
+    n = Math.round(Number(n));
+    if (!Number.isFinite(n)) return DEFAULTS.length;
+    return Math.min(MAX_LEN, Math.max(MIN_LEN, n));
+  }
+  // 全角記号は半角に直し、記号表にある文字だけを表の順で重複なく残す
+  function normalizeSymbols(str) {
+    const set = new Set(String(str).normalize('NFKC').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[￥¥]/g, '\\'));
+    return [...SYMBOLS].filter((c) => set.has(c)).join('');
+  }
+
+  // 偏りのない乱数 [0, n)
+  const buf = new Uint32Array(1);
+  function randInt(n) {
+    const limit = Math.floor(0x100000000 / n) * n;
+    let x;
+    do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+    return x % n;
+  }
+
+  function activeClasses() {
+    const keep = (s) => [...s].filter((c) => !(state.noAmbiguous && AMBIGUOUS.has(c))).join('');
+    const list = [];
+    if (state.lower) list.push({ key: 'lower', chars: keep(LOWER) });
+    if (state.upper) list.push({ key: 'upper', chars: keep(UPPER) });
+    if (state.digit) list.push({ key: 'digit', chars: keep(DIGIT) });
+    if (state.symbol) list.push({ key: 'symbol', chars: keep(state.symbols) });
+    return list.filter((c) => c.chars.length > 0);
+  }
+
+  function generate() {
+    const classes = activeClasses();
+    if (classes.length === 0) {
+      return { error: state.symbol && !state.lower && !state.upper && !state.digit
+        ? '使う記号を1つ以上選んでください。'
+        : '使う文字の種類を1つ以上選んでください。' };
+    }
+    const pool = classes.map((c) => c.chars).join('');
+    const letters = classes.filter((c) => c.key === 'lower' || c.key === 'upper').map((c) => c.chars).join('');
+    const len = state.length;
+
+    if (state.startLetter && !letters) return { error: '「先頭を英字にする」には小文字か大文字を選んでください。' };
+    if (state.requireEach && classes.length > len) return { error: '長さが選んだ文字の種類より短いため作れません。' };
+
+    // 条件を満たすまで作り直す（棄却法）→ 条件を満たす全パターンから均等に選ばれる
+    for (let attempt = 0; attempt < 200000; attempt++) {
+      const chars = new Array(len);
+      for (let i = 0; i < len; i++) {
+        const src = (i === 0 && state.startLetter) ? letters : pool;
+        chars[i] = src[randInt(src.length)];
+      }
+      if (state.requireEach && !classes.every((c) => chars.some((ch) => c.chars.includes(ch)))) continue;
+      const bits = state.startLetter
+        ? Math.log2(letters.length) + (len - 1) * Math.log2(pool.length)
+        : len * Math.log2(pool.length);
+      return { password: chars.join(''), bits };
+    }
+    return { error: '条件を満たすパスワードを作れませんでした。条件を緩めてください。' };
+  }
+
+  let current = '';
+  function render() {
+    const out = $('password');
+    const result = generate();
+    out.textContent = '';
+    if (result.error) {
+      current = '';
+      out.className = 'error';
+      out.textContent = result.error;
+      $('copyBtn').disabled = true;
+      setStrength(0);
+      return;
+    }
+    current = result.password;
+    out.className = '';
+    for (const ch of current) {
+      const span = document.createElement('span');
+      if (DIGIT.includes(ch)) span.className = 'd';
+      else if (SYMBOLS.includes(ch)) span.className = 's';
+      span.textContent = ch;
+      out.appendChild(span);
+    }
+    $('copyBtn').disabled = false;
+    setStrength(result.bits);
+  }
+
+  function setStrength(bits) {
+    const bar = $('strengthBar');
+    let label = '', color = 'transparent';
+    if (bits > 0) {
+      if (bits < 50) { label = '弱'; color = 'var(--weak)'; }
+      else if (bits < 80) { label = '中'; color = 'var(--mid)'; }
+      else { label = '強'; color = 'var(--strong)'; }
+    }
+    bar.style.width = Math.min(100, bits / 128 * 100) + '%';
+    bar.style.background = color;
+    $('strengthLabel').textContent = label;
+    $('strengthLabel').style.color = color;
+    $('bitsLabel').textContent = bits > 0 ? `約${Math.floor(bits)}ビット` : '';
+  }
+
+  function syncUI({ syncInput }) {
+    $('lengthRange').value = state.length;
+    if (document.activeElement !== $('lengthValue')) $('lengthValue').value = state.length;
+    $('lenMinus').disabled = state.length <= MIN_LEN;
+    $('lenPlus').disabled = state.length >= MAX_LEN;
+    for (const k of ['lower', 'upper', 'digit', 'symbol', 'requireEach', 'noAmbiguous', 'startLetter']) {
+      $(k).checked = state[k];
+    }
+    if (syncInput) $('symbolInput').value = state.symbols;
+    renderSymbolUsed();
+    $('symbolArea').classList.toggle('disabled', !state.symbol);
+  }
+
+  // 実際に使われる記号を表示（紛らわしい文字の除外も反映）
+  function renderSymbolUsed() {
+    const el = $('symbolUsed');
+    const used = [...state.symbols].filter((c) => !(state.noAmbiguous && AMBIGUOUS.has(c))).join('');
+    el.textContent = '';
+    if (!used) { el.textContent = '使用する記号：なし'; return; }
+    el.append('使用する記号：');
+    const code = document.createElement('code');
+    code.textContent = used;
+    el.append(code, `（${used.length}種類）`);
+  }
+
+  function update(opts = { syncInput: false }) {
+    syncUI(opts);
+    saveSettings();
+    render();
+  }
+
+  // ---- イベント ----
+  $('lengthRange').addEventListener('input', (e) => { state.length = clampLen(e.target.value); update(); });
+  $('lengthValue').addEventListener('change', (e) => { state.length = clampLen(e.target.value); e.target.value = state.length; update(); });
+  $('lenMinus').addEventListener('click', () => { state.length = clampLen(state.length - 1); update(); });
+  $('lenPlus').addEventListener('click', () => { state.length = clampLen(state.length + 1); update(); });
+
+  for (const k of ['lower', 'upper', 'digit', 'symbol', 'requireEach', 'noAmbiguous', 'startLetter']) {
+    $(k).addEventListener('change', (e) => { state[k] = e.target.checked; update(); });
+  }
+
+  $('symbolInput').addEventListener('input', (e) => { state.symbols = normalizeSymbols(e.target.value); update(); });
+  $('symbolInput').addEventListener('blur', (e) => { e.target.value = state.symbols; });
+
+  $('regenBtn').addEventListener('click', render);
+  $('copyBtn').addEventListener('click', copy);
+
+  async function copy() {
+    if (!current) return;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(current);
+      ok = true;
+    } catch {
+      // 古いブラウザ・非HTTPS 用の予備手段
+      const ta = document.createElement('textarea');
+      ta.value = current;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch { ok = false; }
+      ta.remove();
+    }
+    toast(ok ? 'コピーしました' : 'コピーできませんでした');
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+
+  update({ syncInput: true });
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
