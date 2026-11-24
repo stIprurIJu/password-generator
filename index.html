@@ -497,14 +497,16 @@
     const bodyStyle = getComputedStyle(document.body);
     const avail = window.innerHeight - parseFloat(bodyStyle.paddingTop) - parseFloat(bodyStyle.paddingBottom);
     const vw = root.clientWidth;
-    const minF = pc ? 14 : 11;
-    const maxF = Math.max(minF, Math.min(pc ? 28 : 18, pc ? (vw - 40) / 65 : vw / 26));
+    const minF = pc ? 13 : 11;
+    const maxF = Math.max(minF, Math.min(pc ? 24 : 18, pc ? (vw - 40) / 65 : vw / 26));
+    // PC はぴったり収まる大きさの 9 割にして、少し控えめに表示する（余りはカードを伸ばして埋める）
+    const scale = pc ? 0.9 : 1;
 
     root.classList.add('measuring');
     let f = parseFloat(getComputedStyle(root).fontSize) || 16;
     for (let i = 0; i < 6; i++) {
       root.style.fontSize = f + 'px';
-      const next = Math.max(minF, Math.min(maxF, f * avail / main.offsetHeight));
+      const next = Math.max(minF, Math.min(maxF, f * avail * scale / main.offsetHeight));
       if (Math.abs(next - f) < 0.05) break;
       f = next;
     }
