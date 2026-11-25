@@ -67,3 +67,9 @@
 |---|---|---|
 | パスワード・記号 | Cascadia Mono | [fonts/OFL-cascadia.txt](fonts/OFL-cascadia.txt) |
 | 日本語の文字 | Noto Sans JP | [fonts/OFL-notosansjp.txt](fonts/OFL-notosansjp.txt) |
+
+## ライセンス
+
+[MIT License](LICENSE) です。自由に使用・改変・再配布できます（無保証）。
+
+ただし `fonts/` のフォントは除きます。フォントは、それぞれの SIL Open Font License 1.1 に従います。
